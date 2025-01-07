@@ -1,47 +1,61 @@
 import os
 import random
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import ParseMode
+from aiogram.utils.exceptions import BotBlocked
 
 
 load_dotenv()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable not set in .env file.")
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text=f"Привет, {update.effective_user.first_name}!")
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
+
+names = ("Alice", "Bob", "Charlie", "Dave", "Eve", "Jona", "Mallory", "Trent")
 
 
-async def myinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text=f"Ваш id: {user.id}\nВаше имя: {user.first_name}\n"
-                                        f"Ваш username: @{user.username}")
+@dp.message_handler(commands=["start"])
+async def start(message: types.Message):
+    await message.reply(f"Привет, {message.from_user.first_name}!")
 
 
-names = ("Alice", "Bob", "Charlie", "Dave", "Eve")
+@dp.message_handler(commands=["myinfo"])
+async def myinfo(message: types.Message):
+    user = message.from_user
+    await message.reply(
+        f"Ваш ID: `{user.id}`\n"
+        f"Ваше имя: `{user.first_name}`\n"
+        f"Ваш username: `@{user.username}`",
+        parse_mode=ParseMode.MARKDOWN_V2,
+    )
 
 
-async def random_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@dp.message_handler(commands=["random"])
+async def random_name(message: types.Message):
     name = random.choice(names)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Случайное имя: {name}")
+    await message.reply(f"Случайное имя: {name}")
+
+
+@dp.errors_handler()
+async def error_handler(update: types.Update, exception: Exception):
+
+    from aiogram.utils.exceptions import (
+        MessageNotModified,
+        MessageToDeleteNotFound,
+        MessageTextIsEmpty,
+        RetryAfter,
+        TelegramAPIError,
+    )
+    if isinstance(exception, (BotBlocked, MessageNotModified, MessageToDeleteNotFound,
+                              MessageTextIsEmpty, RetryAfter, TelegramAPIError)):
+        return True
+    print(f"Exception in {__file__}: {exception}")
+    return True
 
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    start_handler = CommandHandler('start', start)
-    myinfo_handler = CommandHandler('myinfo', myinfo)
-    random_handler = CommandHandler('random', random_name)
-
-    application.add_handler(start_handler)
-    application.add_handler(myinfo_handler)
-    application.add_handler(random_handler)
-
-    application.run_polling()
-
+    executor.start_polling(dp, skip_updates=True)
