@@ -3,14 +3,11 @@ from aiogram import Bot, Dispatcher, types
 from asyncio import run
 from aiogram.filters import Command
 import random
-
+from bot_config import bot, dp
 from hendlers.start import start_router
-from hendlers.start import random_router
-from hendlers.start import name_router
-from hendlers.start import capito_router
-token = dotenv_values('.env')['TOKEN']
-bot = Bot(token=token)
-dp = Dispatcher()
+from hendlers.random_name  import random_router
+from hendlers.name import name_router
+from hendlers.capito import capito_router
 
 names = ('name', 'Azamat', 'Timur')
 
