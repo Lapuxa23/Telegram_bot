@@ -1,6 +1,6 @@
-from aiogram import bot, Dispatcher
-from dotenv import dotevn_values, dotenv_values
+from aiogram import Bot, Dispatcher
+from dotenv import dotenv_values
 
-token = dotenv_values(".env") ["TOKEN"]
-bot = BOT(token=token)
+token = dotenv_values (".env") ["TOKEN"]
+bot = Bot (token=token)
 dp = Dispatcher

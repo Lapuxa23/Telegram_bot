@@ -1,15 +1,10 @@
-from dotenv import dotenv_values
-from aiogram import Bot, Dispatcher, types
-from asyncio import run
-from aiogram.filters import Command
-import random
-from bot_config import bot, dp
-from hendlers.start import start_router
-from hendlers.random_name  import random_router
-from hendlers.name import name_router
-from hendlers.capito import capito_router
 
-names = ('name', 'Azamat', 'Timur')
+from asyncio import run
+from bot_config import Bot,dp
+from handlers.start import start_router
+from handlers.random_name import random_router
+from handlers.name import name_router
+from handlers.capito import capito_router
 
 
 async def main():
