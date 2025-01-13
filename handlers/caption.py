@@ -2,8 +2,8 @@ import random
 from bot_config import dp
 from aiohttp import Router, types
 from aiogram.filters import Command
-recipes = {
 capito_router = Router()
+recipes = {
     "Салат": "images/salad.jpg",
     "Борщ": "images/borscht.jpg",
     "Пицца": "images/pizza.jpg"
