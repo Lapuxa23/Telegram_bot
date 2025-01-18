@@ -2,9 +2,9 @@ from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+import datetime
 
 from bot_config import database
-from handlers.start import start_router
 
 
 class RestaurantReview(StatesGroup):
@@ -13,33 +13,23 @@ class RestaurantReview(StatesGroup):
     rating = State()
     extra_comments = State()
     visit_date = State()
+
+
 review_router = Router()
 
-@review_router.callback_query(Command("review"))
+
+@review_router.callback_query(Command == "review")
 async def review_start(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.answer("Как вас зовут?")
     await state.set_state(RestaurantReview.name)
 
 
-@review_router.message(RestaurantReview.name)
-async def process_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer("Ваш номер телефона или имя пользователя Instagram?")
-    await state.set_state(RestaurantReview.contact)
-
-
-@review_router.message(RestaurantReview.contact)
-async def process_contact(message: types.Message, state: FSMContext):
-    await state.update_data(contact=message.text)
-    await message.answer("Когда вы посетили наш ресторан? (Необязательно, формат: ГГГГ-ММ-ДД)")
-    await state.set_state(RestaurantReview.visit_date)
-
-
 @review_router.message(RestaurantReview.visit_date)
 async def process_visit_date(message: types.Message, state: FSMContext):
     if message.text.lower() != "пропустить":
         try:
+            visit_date = datetime.datetime.strptime(message.text, "%Y-%m-%d").date()
             await state.update_data(visit_date=str(visit_date))
         except ValueError:
             await message.reply(
@@ -48,13 +38,7 @@ async def process_visit_date(message: types.Message, state: FSMContext):
 
     kb = types.InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                types.InlineKeyboardButton(text='1', callback_data='rating:1'),
-                types.InlineKeyboardButton(text='2', callback_data='rating:2'),
-                types.InlineKeyboardButton(text='3', callback_data='rating:3'),
-                types.InlineKeyboardButton(text='4', callback_data='rating:4'),
-                types.InlineKeyboardButton(text='5', callback_data='rating:5'),
-            ]
+            [types.InlineKeyboardButton(text=str(i), callback_data=f"rating:{i}") for i in range(1, 6)]
         ]
     )
     await message.answer("Поставьте нам оценку:", reply_markup=kb)
@@ -75,8 +59,13 @@ async def process_extra_comments(message: types.Message, state: FSMContext):
     await state.update_data(extra_comments=message.text)
     data = await state.get_data()
 
-    await message.answer(f"Спасибо за ваш отзыв, {data['name']}!")
-    data = await state.get_data()
-    print(data)
-    database.save_complaint(data)
-    await state.clear()
+    try:
+
+        database.save_review(data)
+        await message.answer(f"Спасибо за ваш отзыв, {data['name']}!")
+        await state.clear()
+
+    except Exception as e:
+        await message.answer("Произошла ошибка при сохранении отзыва. Пожалуйста, попробуйте позже.")
+        print(f"Error saving review: {e}")
+        await state.clear()
