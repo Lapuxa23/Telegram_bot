@@ -9,3 +9,5 @@ random_router = Router()
 async def random_name(message: types.Message):
     random_name = random.choice(names)
     await message.answer(random_name)
+
+names=['timur']

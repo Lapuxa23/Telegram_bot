@@ -1,6 +1,10 @@
 from aiogram import Router, F, types
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+
+from bot_config import database
+from handlers.start import start_router
 
 
 class RestaurantReview(StatesGroup):
@@ -9,12 +13,9 @@ class RestaurantReview(StatesGroup):
     rating = State()
     extra_comments = State()
     visit_date = State()
-
-
 review_router = Router()
 
-
-@review_router.callback_query(F.data == "review")
+@review_router.callback_query(Command("review"))
 async def review_start(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.answer("Как вас зовут?")
@@ -39,7 +40,6 @@ async def process_contact(message: types.Message, state: FSMContext):
 async def process_visit_date(message: types.Message, state: FSMContext):
     if message.text.lower() != "пропустить":
         try:
-            visit_date = datetime.datetime.strptime(message.text, "%Y-%m-%d").date()
             await state.update_data(visit_date=str(visit_date))
         except ValueError:
             await message.reply(
@@ -76,4 +76,7 @@ async def process_extra_comments(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     await message.answer(f"Спасибо за ваш отзыв, {data['name']}!")
+    data = await state.get_data()
+    print(data)
+    database.save_complaint(data)
     await state.clear()
