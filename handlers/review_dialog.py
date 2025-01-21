@@ -10,19 +10,30 @@ from bot_config import database
 class RestaurantReview(StatesGroup):
     name = State()
     contact = State()
+    visit_date = State()
     rating = State()
     extra_comments = State()
-    visit_date = State()
 
 
 review_router = Router()
 
 
-@review_router.callback_query(Command == "review")
+@review_router.callback_query(F.data== "review")
 async def review_start(callback: types.CallbackQuery, state: FSMContext):
-    await callback.answer()
     await callback.message.answer("Как вас зовут?")
     await state.set_state(RestaurantReview.name)
+
+
+@review_router.message(RestaurantReview.name)
+async def process_name(m:types.Message,state:FSMContext):
+    await m.answer("ваш контакт")
+    await state.set_state(RestaurantReview.contact)
+
+
+@review_router.message(RestaurantReview.contact)
+async def process_name(m:types.Message,state:FSMContext):
+    await m.answer("ваша дата визита")
+    await state.set_state(RestaurantReview.visit_date)
 
 
 @review_router.message(RestaurantReview.visit_date)

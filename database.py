@@ -33,7 +33,7 @@ class Database:
                 INSERT INTO complaints (name, age, complaint)
                 VALUES (?, ?, ?)
             """,
-                (data["name"], data["age"], data["complaint"])
+                (data["name"], data["age"], data["review"])
             )
 
     def save_book(self, data: dict):
@@ -43,5 +43,5 @@ class Database:
                 INSERT INTO books (name, year, author, price)
                 VALUES (?, ?, ?, ?)
             """,
-                (data["name"], data["year"], data["author"], data["price"])
+                (data["name"], data["price"])
             )

@@ -22,10 +22,7 @@ async def main():
 
 
 
-    dp.include_router(other_router)
-
     dp.startup.register(on_startup)
-
     await dp.start_polling(bot)
 
 

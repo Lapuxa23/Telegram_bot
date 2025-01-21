@@ -6,3 +6,4 @@ token = dotenv_values(".env")["TOKEN"]
 bot = Bot(token=token)
 dp = Dispatcher()
 database = Database("db.sqlite3")
+dp["db"] = database
