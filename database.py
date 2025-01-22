@@ -16,32 +16,25 @@ class Database:
                 complaint TEXT
             )
             """)
-            conn.execute("""
-            CREATE TABLE IF NOT EXISTS food(
+            conn.execute('''
+            CREATE TABLE IF NOT EXISTS dishes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                year INTEGER,
-                author TEXT,
-                price INTEGER
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                description TEXT,
+                category TEXT,
+                portion_options TEXT
             )
-            """)
+        ''')
+        self.conn.commit()
 
-    def save_complaint(self, data: dict):
-        with sqlite3.connect(self.path) as conn:
-            conn.execute(
-            """
-                INSERT INTO complaints (name, age, complaint)
-                VALUES (?, ?, ?)
-            """,
-                (data["name"], data["age"], data["review"])
-            )
+    def save_dish(self, data):
 
-    def save_book(self, data: dict):
-        with sqlite3.connect(self.path) as conn:
-            conn.execute(
-            """
-                INSERT INTO books (name, year, author, price)
-                VALUES (?, ?, ?, ?)
-            """,
-                (data["name"], data["price"])
-            )
+        self.cursor.execute('''
+            INSERT INTO dishes (name, price, description, category, portion_options)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data['name'], data['price'], data['description'], data['category'], data['portion_options']))
+
+        self.conn.commit()
+
+db = Database("restaurant.db")
