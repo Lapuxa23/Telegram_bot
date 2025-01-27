@@ -3,12 +3,11 @@ import logging
 from aiogram import Bot
 
 from bot_config import bot, dp, database
-from handlers import Dishes
 from handlers.start import start_router
 from handlers.caption import picture_router
 from handlers.other_messages import other_router
 from handlers.review_dialog import review_router
-from handlers.Dishes import admin_menu_router
+from handlers.dishes import admin_menu_router
 
 
 async def on_startup(bot: Bot):
@@ -21,8 +20,6 @@ async def main():
     dp.include_router(other_router)
     dp.include_router(review_router)
     dp.include_router(admin_menu_router)
-
-
 
     dp.startup.register(on_startup)
     await dp.start_polling(bot)

@@ -18,20 +18,20 @@ class RestaurantReview(StatesGroup):
 review_router = Router()
 
 
-@review_router.callback_query(F.data== "review")
+@review_router.callback_query(F.data == "review")
 async def review_start(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("Как вас зовут?")
     await state.set_state(RestaurantReview.name)
 
 
 @review_router.message(RestaurantReview.name)
-async def process_name(m:types.Message,state:FSMContext):
+async def process_name(m: types.Message, state: FSMContext):
     await m.answer("ваш контакт")
     await state.set_state(RestaurantReview.contact)
 
 
 @review_router.message(RestaurantReview.contact)
-async def process_name(m:types.Message,state:FSMContext):
+async def process_name(m: types.Message, state: FSMContext):
     await m.answer("ваша дата визита")
     await state.set_state(RestaurantReview.visit_date)
 
