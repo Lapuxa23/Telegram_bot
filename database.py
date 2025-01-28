@@ -48,7 +48,7 @@ class Database:
                     INSERT INTO review (name, age, complaint)
                     VALUES (?, ?, ?)
                 """,
-                (data["name"], data["age"], data["complaint"])
+                (data["name"], data["age"], data["review"])
             )
             self.conn.commit()
             return True

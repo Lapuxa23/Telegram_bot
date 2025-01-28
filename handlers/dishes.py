@@ -3,88 +3,61 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from bot_config import Database
+from typing import List, Dict, Tuple
+import math
 
 
 class AddDish(StatesGroup):
-    name = State()
-    price = State()
-    description = State()
-    category = State()
-    portion_options = State()
 
 
-admin_menu_router = Router()
+    admin_menu_router = Router()
 
 
-@admin_menu_router.message(Command("add_dish"))
-async def add_dish_start(message: types.Message, state: FSMContext):
-    if message.from_user.id == 1103706734:
-        await message.answer("Введите название блюда:")
-        await state.set_state(AddDish.name)
+async def show_dishes_page(message: types.Message, page: int, db: Database):
+    dishes_per_page = 5
+    offset = (page - 1) * dishes_per_page
+    total_dishes = db.get_dishes_count()
+    total_pages = math.ceil(total_dishes / dishes_per_page)
+
+    if 1 <= page <= total_pages:
+        dishes = db.get_dishes_paginated(offset, dishes_per_page)
+        text = f"<b>Меню (страница {page}/{total_pages}):</b>\n\n"
+
+        for dish in dishes:
+            text += (f"<b>Название:</b> {dish['name']}\n"
+                     f"<b>Цена:</b> {dish['price']}\n"
+                     f"<b>Описание:</b> {dish['description']}\n"
+                     f"<b>Категория:</b> {dish['category']}\n"
+                     f"<b>Порции:</b> {dish['portion_options']}\n"
+                     f"{'<b>Фото:</b> Есть' if dish.get('photo') else 'Фото: Нет'}\n\n")
+
+        kb = types.InlineKeyboardMarkup(row_width=5)
+        buttons = []
+
+        for p in range(1, total_pages + 1):
+            buttons.append(types.InlineKeyboardButton(text=str(p), callback_data=f"show_page:{p}"))
+        kb.add(*buttons)
+
+        await message.answer(text, parse_mode="HTML", reply_markup=kb)
     else:
-        await message.answer("У вас нет прав для этой команды.")
+        await message.answer("Такой страницы не существует.")
 
 
-@admin_menu_router.message(AddDish.name)
-async def process_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer("Введите цену:")
-    await state.set_state(AddDish.price)
+@admin_menu_router.message(Command("menu"))
+async def show_menu(message: types.Message):
+    db = Database("restaurant.db")
+    await show_dishes_page(message, 1, db)
+    db.close()
 
 
-@admin_menu_router.message(AddDish.price)
-async def process_price(message: types.Message, state: FSMContext):
-    try:
-        price = float(message.text)
-        await state.update_data(price=price)
-        await message.answer("Введите описание:")
-        await state.set_state(AddDish.description)
-    except ValueError:
-        await message.reply("Цена должна быть числом.")
-
-
-@admin_menu_router.message(AddDish.description)
-async def process_description(message: types.Message, state: FSMContext):
-    await state.update_data(description=message.text)
-    categories = [
-        "первое", "второе", "пицца", "горячие напитки", "холодные напитки", "салаты", "горячительные напитки"
-    ]
-    kb = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(text=c)] for c in categories], resize_keyboard=True,
-                                   one_time_keyboard=True)
-    await message.answer("Выберите категорию:", reply_markup=kb)
-
-    await state.set_state(AddDish.category)
-
-
-@admin_menu_router.message(AddDish.category)
-async def process_category(message: types.Message, state: FSMContext):
-    await state.update_data(category=message.text)
-    await message.answer("Введите варианты порций (через запятую, например: 'маленькая, средняя, большая'):",
-                         reply_markup=types.ReplyKeyboardRemove())
-    await state.set_state(AddDish.portion_options)
+@admin_menu_router.callback_query(F.data.startswith("show_page:"))
+async def handle_pagination(callback: types.CallbackQuery):
+    page = int(callback.data.split(":")[1])
+    db = Database("restaurant.db")
+    await show_dishes_page(callback.message, page, dbe
+    db.close()
+    await callback.answer()
 
 
 @admin_menu_router.message(AddDish.portion_options)
 async def process_portion_options(message: types.Message, state: FSMContext):
-    await state.update_data(portion_options=message.text)
-    data = await state.get_data()
-    await message.answer(
-        f"<b>Проверяем данные перед сохранением:</b>\n"
-        f"Название: {data['name']}\n"
-        f"Цена: {data['price']}\n"
-        f"Описание: {data['description']}\n"
-        f"Категория: {data['category']}\n"
-        f"Порции: {data['portion_options']}" , parse_mode="HTML"
-    )
-
-    db = Database("restaurant.db")
-    try:
-        if db.dishes_review(data):
-            await message.answer("<b>Блюдо успешно добавлено!</b>", parse_mode="HTML")
-        else:
-            await message.answer("<b>Не удалось добавить блюдо. Произошла ошибка при записи в базу данных.</b>", parse_mode="HTML")
-    except Exception as e:
-        await message.answer(f"<b>Произошла ошибка:</b> <code>{e}</code>", parse_mode="HTML")
-    finally:
-        db.close()
-        await state.clear()

@@ -4,10 +4,11 @@ from aiogram import Bot
 
 from bot_config import bot, dp, database
 from handlers.start import start_router
+from handlers.dishes import admin_menu_router
 from handlers.caption import picture_router
 from handlers.other_messages import other_router
 from handlers.review_dialog import review_router
-from handlers.dishes import admin_menu_router
+
 
 
 async def on_startup(bot: Bot):
