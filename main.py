@@ -17,11 +17,11 @@ async def on_startup(bot: Bot):
 async def main():
     dp.include_router(start_router)
     dp.include_router(picture_router)
-    dp.include_router(other_router)
     dp.include_router(review_router)
     dp.include_router(admin_menu_router)
 
     dp.startup.register(on_startup)
+    dp.include_router(other_router)
     await dp.start_polling(bot)
 
 
