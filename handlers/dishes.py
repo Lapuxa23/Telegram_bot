@@ -12,68 +12,75 @@ admin_menu_router.message.filter(
     F.from_user.id == 1103706734
 )
 
-
-class Book(StatesGroup):
+class Dish(StatesGroup):
     name = State()
     year = State()
     author = State()
     price = State()
+    description = State()
+    category = State()
     cover = State()
 
 @admin_menu_router.message(Command("add_dish"), default_state)
-async def new_book(message: types.Message, state: FSMContext):
+async def new_dish(message: types.Message, state: FSMContext):
     await message.answer("Введите название блюда")
-    message.from_user.id
-    await state.set_state(Book.name)
+    await state.set_state(Dish.name)
 
-@admin_menu_router.message(Book.name)
+@admin_menu_router.message(Dish.name)
 async def process_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
     await message.answer("Введите год создания рецепта")
-    await state.set_state(Book.year)
+    await state.set_state(Dish.year)
 
-@admin_menu_router.message(Book.year)
+@admin_menu_router.message(Dish.year)
 async def process_year(message: types.Message, state: FSMContext):
-    year = message.text
-    if not year.isdigit():
+    if not message.text.isdigit():
         await message.answer("Вводите только цифры")
         return
-    year = int(year)
+    year = int(message.text)
     if year < 0 or year > 2025:
-        await message.answer("Вводите только действительный год создания")
+        await message.answer("Введите корректный год")
         return
-    await state.update_data(year=message.text)
+    await state.update_data(year=year)
     await message.answer("Введите имя шеф-повара")
-    await state.set_state(Book.author)
+    await state.set_state(Dish.author)
 
-@admin_menu_router.message(Book.author)
+@admin_menu_router.message(Dish.author)
 async def process_author(message: types.Message, state: FSMContext):
     await state.update_data(author=message.text)
     await message.answer("Введите цену блюда")
-    await state.set_state(Book.price)
+    await state.set_state(Dish.price)
 
-@admin_menu_router.message(Book.price)
+@admin_menu_router.message(Dish.price)
 async def process_price(message: types.Message, state: FSMContext):
-    price = message.text
-    if not price.isdigit():
-        await message.answer("Вводите только цифры")
+    if not message.text.replace('.', '', 1).isdigit():
+        await message.answer("Введите корректную цену")
         return
-    price = int(price)
+    price = float(message.text)
     if price <= 0:
-        await message.answer("Вводите только положительную цену")
+        await message.answer("Цена должна быть положительной")
         return
     await state.update_data(price=price)
-    await message.answer("Загрузите фото блюда")
-    await state.set_state(Book.cover)
+    await message.answer("Введите описание блюда")
+    await state.set_state(Dish.description)
 
-@admin_menu_router.message(Book.cover, F.photo)
+@admin_menu_router.message(Dish.description)
+async def process_description(message: types.Message, state: FSMContext):
+    await state.update_data(description=message.text)
+    await message.answer("Введите категорию блюда")
+    await state.set_state(Dish.category)
+
+@admin_menu_router.message(Dish.category)
+async def process_category(message: types.Message, state: FSMContext):
+    await state.update_data(category=message.text)
+    await message.answer("Загрузите фото блюда")
+    await state.set_state(Dish.cover)
+
+@admin_menu_router.message(Dish.cover, F.photo)
 async def process_cover(message: types.Message, state: FSMContext):
-    covers = message.photo
-    pprint(covers)
-    biggest_image = covers[-1]
-    await state.update_data(cover = biggest_image.file_id)
-    await message.answer("Спасибо, блюдо было сохранено")
+    biggest_image = message.photo[-1]
+    await state.update_data(cover=biggest_image.file_id)
     data = await state.get_data()
-    print(data)
-    database.save_book(data)
+    database.save_dish(data)
+    await message.answer("Спасибо, блюдо сохранено!")
     await state.clear()
