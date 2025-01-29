@@ -9,8 +9,7 @@ import math
 
 class AddDish(StatesGroup):
 
-
-    admin_menu_router = Router()
+admin_menu_router = Router()
 
 
 async def show_dishes_page(message: types.Message, page: int, db: Database):
@@ -54,7 +53,7 @@ async def show_menu(message: types.Message):
 async def handle_pagination(callback: types.CallbackQuery):
     page = int(callback.data.split(":")[1])
     db = Database("restaurant.db")
-    await show_dishes_page(callback.message, page, dbe
+    await show_dishes_page(callback.message, page, dbe)
     db.close()
     await callback.answer()
 
