@@ -1,62 +1,79 @@
 from aiogram import Router, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from bot_config import Database
-from typing import List, Dict, Tuple
-import math
+from aiogram.fsm.state import State, StatesGroup, default_state
+from pprint import pprint
 
-
-class AddDish(StatesGroup):
+from database import Database
+from bot_config import database
 
 admin_menu_router = Router()
+admin_menu_router.message.filter(
+    F.from_user.id == 1103706734
+)
 
 
-async def show_dishes_page(message: types.Message, page: int, db: Database):
-    dishes_per_page = 5
-    offset = (page - 1) * dishes_per_page
-    total_dishes = db.get_dishes_count()
-    total_pages = math.ceil(total_dishes / dishes_per_page)
+class Book(StatesGroup):
+    name = State()
+    year = State()
+    author = State()
+    price = State()
+    cover = State()
 
-    if 1 <= page <= total_pages:
-        dishes = db.get_dishes_paginated(offset, dishes_per_page)
-        text = f"<b>Меню (страница {page}/{total_pages}):</b>\n\n"
+@admin_menu_router.message(Command("add_dish"), default_state)
+async def new_book(message: types.Message, state: FSMContext):
+    await message.answer("Введите название блюда")
+    message.from_user.id
+    await state.set_state(Book.name)
 
-        for dish in dishes:
-            text += (f"<b>Название:</b> {dish['name']}\n"
-                     f"<b>Цена:</b> {dish['price']}\n"
-                     f"<b>Описание:</b> {dish['description']}\n"
-                     f"<b>Категория:</b> {dish['category']}\n"
-                     f"<b>Порции:</b> {dish['portion_options']}\n"
-                     f"{'<b>Фото:</b> Есть' if dish.get('photo') else 'Фото: Нет'}\n\n")
+@admin_menu_router.message(Book.name)
+async def process_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    await message.answer("Введите год создания рецепта")
+    await state.set_state(Book.year)
 
-        kb = types.InlineKeyboardMarkup(row_width=5)
-        buttons = []
+@admin_menu_router.message(Book.year)
+async def process_year(message: types.Message, state: FSMContext):
+    year = message.text
+    if not year.isdigit():
+        await message.answer("Вводите только цифры")
+        return
+    year = int(year)
+    if year < 0 or year > 2025:
+        await message.answer("Вводите только действительный год создания")
+        return
+    await state.update_data(year=message.text)
+    await message.answer("Введите имя шеф-повара")
+    await state.set_state(Book.author)
 
-        for p in range(1, total_pages + 1):
-            buttons.append(types.InlineKeyboardButton(text=str(p), callback_data=f"show_page:{p}"))
-        kb.add(*buttons)
+@admin_menu_router.message(Book.author)
+async def process_author(message: types.Message, state: FSMContext):
+    await state.update_data(author=message.text)
+    await message.answer("Введите цену блюда")
+    await state.set_state(Book.price)
 
-        await message.answer(text, parse_mode="HTML", reply_markup=kb)
-    else:
-        await message.answer("Такой страницы не существует.")
+@admin_menu_router.message(Book.price)
+async def process_price(message: types.Message, state: FSMContext):
+    price = message.text
+    if not price.isdigit():
+        await message.answer("Вводите только цифры")
+        return
+    price = int(price)
+    if price <= 0:
+        await message.answer("Вводите только положительную цену")
+        return
+    await state.update_data(price=price)
+    await message.answer("Загрузите фото блюда")
+    await state.set_state(Book.cover)
 
-
-@admin_menu_router.message(Command("menu"))
-async def show_menu(message: types.Message):
-    db = Database("restaurant.db")
-    await show_dishes_page(message, 1, db)
-    db.close()
-
-
-@admin_menu_router.callback_query(F.data.startswith("show_page:"))
-async def handle_pagination(callback: types.CallbackQuery):
-    page = int(callback.data.split(":")[1])
-    db = Database("restaurant.db")
-    await show_dishes_page(callback.message, page, dbe)
-    db.close()
-    await callback.answer()
-
-
-@admin_menu_router.message(AddDish.portion_options)
-async def process_portion_options(message: types.Message, state: FSMContext):
+@admin_menu_router.message(Book.cover, F.photo)
+async def process_cover(message: types.Message, state: FSMContext):
+    covers = message.photo
+    pprint(covers)
+    biggest_image = covers[-1]
+    await state.update_data(cover = biggest_image.file_id)
+    await message.answer("Спасибо, блюдо было сохранено")
+    data = await state.get_data()
+    print(data)
+    database.save_book(data)
+    await state.clear()
